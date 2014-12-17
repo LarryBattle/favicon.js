@@ -1,70 +1,57 @@
 /* http://mit-license.org/ */
 
-(function(global) {
+(function(global, doc) {
     if (global["favicon"]) {
         return;
     }
 
-    /*\
-    |*| Private
-    \*/
+    // private
 
-    var head = global.document.getElementsByTagName("head")[0];
-    var sequencePause;
-    var iconSequence;
-    var iconIndex;
+    var head = doc.getElementsByTagName("head")[0];
     var loopTimeout = null;
-    var preloadIcons = function(icons) {
-        var image = new Image();
-        for (var i = 0; i < icons.length; i++) {
-            image.src = icons[i];
-        }
-    };
-    var addLink = function(iconUrl) {
-        var newLink = document.createElement("link");
+    var changeFavicon = function(iconURL) {
+        var newLink = doc.createElement("link");
         newLink.type = "image/x-icon";
         newLink.rel = "icon";
-        newLink.href = iconUrl;
-        removeLinkIfExists();
+        newLink.href = iconURL;
+        removeExistingFavicons();
         head.appendChild(newLink);
     };
-    var removeLinkIfExists = function() {
+    var removeExistingFavicons = function() {
         var links = head.getElementsByTagName("link");
-        var l = links.length;
-        for (; --l >= 0; /\bicon\b/i.test(links[l].getAttribute("rel")) && head.removeChild(links[l])) {}
+        for (var i = links.length; --i >= 0; /\bicon\b/i.test(links[i].getAttribute("rel")) && head.removeChild(links[i])) {}
     };
 
-    /*\
-    |*| Public
-    \*/
+    // public
 
     global["favicon"] = {
         "defaultPause": 2000,
         "change": function(iconURL, optionalDocTitle) {
             clearTimeout(loopTimeout);
             if (optionalDocTitle) {
-                document.title = optionalDocTitle;
+                doc.title = optionalDocTitle;
             }
             if (iconURL !== "") {
-                addLink(iconURL);
+                changeFavicon(iconURL);
             }
         },
         "animate": function(icons, optionalDelay) {
             clearTimeout(loopTimeout);
-            var that = this;
-            preloadIcons(icons);
-            iconSequence = icons;
-            sequencePause = (optionalDelay) ? optionalDelay : that["defaultPause"];
-            iconIndex = 0;
-            that["change"](iconSequence[0]);
+            // preload icons
+            icons.forEach(function(icon) {
+                (new Image()).src = icon;
+            });
+            optionalDelay = optionalDelay || this["defaultPause"];
+            var iconIndex = 0;
+            changeFavicon(icons[iconIndex]);
             loopTimeout = setTimeout(function animateFunc() {
-                iconIndex = (iconIndex + 1) % iconSequence.length;
-                addLink(iconSequence[iconIndex]);
-                loopTimeout = setTimeout(animateFunc, sequencePause);
-            }, sequencePause);
+                iconIndex = (iconIndex + 1) % icons.length;
+                changeFavicon(icons[iconIndex]);
+                loopTimeout = setTimeout(animateFunc, optionalDelay);
+            }, optionalDelay);
         },
         "stopAnimate": function() {
             clearTimeout(loopTimeout);
         }
     };
-})(this);
+})(this, document);
